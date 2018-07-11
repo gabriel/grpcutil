@@ -8,6 +8,8 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/pkg/errors"
+
 	"github.com/gabriel/grpcutil/protoc-gen-flowtypes/opts"
 	"github.com/golang/glog"
 	"github.com/golang/protobuf/jsonpb"
@@ -295,11 +297,14 @@ func generateFlowTypes(file *descriptor.File, registry *descriptor.Registry, opt
 
 	if file.Options != nil {
 		v, err := proto.GetExtension(file.Options, opts.E_FieldDefaults)
-		if err != nil {
-			return "", err
-		}
-		if o := v.(*opts.Options); o != nil {
-			options.ProtoOptions = *o
+		if err == nil {
+			if o := v.(*opts.Options); o != nil {
+				options.ProtoOptions = *o
+			}
+		} else {
+			if err != proto.ErrMissingExtension {
+				return "", errors.Wrap(err, "GetExtenstion")
+			}
 		}
 	}
 

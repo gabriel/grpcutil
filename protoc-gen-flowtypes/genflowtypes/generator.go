@@ -1,10 +1,11 @@
 package genflowtypes
 
 import (
-	"errors"
 	"fmt"
 	"path/filepath"
 	"strings"
+
+	"github.com/pkg/errors"
 
 	"github.com/gabriel/grpcutil/protoc-gen-flowtypes/opts"
 	"github.com/golang/glog"
@@ -65,7 +66,7 @@ func (g *Generator) Generate(targets []*descriptor.File, opts GeneratorOptions) 
 			continue
 		}
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "generateFlowTypes")
 		}
 
 		files = append(files, &plugin.CodeGeneratorResponse_File{
