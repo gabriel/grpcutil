@@ -41,7 +41,7 @@ func (cfg GeneratorOptions) methodToRedux(name string, m *descriptor.Method) (st
 	types := []string{requestType, responseType}
 	prefix := strings.ToUpper(name)
 	actionName := prefix + "_" + strings.ToUpper(strcase.SnakeCase(methodName))
-	s := `const ` + methodName + ` = (req: ` + requestType + `) => (dispatch: (action: any) => void) => {
+	s := `export const ` + methodName + ` = (req: ` + requestType + `) => (dispatch: (action: any) => void) => {
   dispatch({
     type: '` + actionName + `_REQUEST',
 		payload: req,
@@ -75,7 +75,6 @@ func (cfg GeneratorOptions) methodToReducerActions(name string, m *descriptor.Me
 			return {
 				...state,
 				` + methodName + `Loading: false,
-				` + methodName + `: null,
 		  }
 		}
 		case '` + actionName + `_RESPONSE': {
