@@ -6,8 +6,6 @@ import (
 	"text/template"
 	"unicode"
 
-	"github.com/davecgh/go-spew/spew"
-	"github.com/golang/glog"
 	"github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway/descriptor"
 	strcase "github.com/stoewer/go-strcase"
 )
@@ -41,22 +39,23 @@ func (cfg GeneratorOptions) methodToRedux(name string, m *descriptor.Method) (st
 	types := []string{requestType, responseType}
 	prefix := strings.ToUpper(name)
 	actionName := prefix + "_" + strings.ToUpper(strcase.SnakeCase(methodName))
-	s := `export const ` + methodName + ` = (req: ` + requestType + `) => (dispatch: (action: any) => void) => {
+	s := `export const ` + methodName + ` = (req: ` + requestType + `, respFn: ?(resp: ` + responseType + `) => void) => (dispatch: (action: any) => void) => {
   dispatch({
     type: '` + actionName + `_REQUEST',
 		payload: req,
   })
-  client().` + methodName + `(req, (error: ?Error, response: ?` + responseType + `) => {
-    if (error) {
+  client().` + methodName + `(req, (err: ?Error, resp: ?` + responseType + `) => {
+    if (err) {
       dispatch({
         type: 'ERROR',
-        payload: {error, action: '` + actionName + `', req},
+        payload: {error: err, action: '` + actionName + `', req},
       })
       return
     }
+		if (resp && respFn) respFn(resp)
     dispatch({
       type: '` + actionName + `_RESPONSE',
-      payload: response,
+      payload: resp,
     })
   })
 }`
@@ -75,12 +74,14 @@ func (cfg GeneratorOptions) methodToReducerActions(name string, m *descriptor.Me
 			return {
 				...state,
 				` + methodName + `Loading: false,
+				` + methodName + `Request: action.payload,
 		  }
 		}
 		case '` + actionName + `_RESPONSE': {
 			return {
 				...state,
 				` + methodName + `Loading: false,
+				` + methodName + `Request: null,
 				` + methodName + `: action.payload,
 			}
 		}`
@@ -97,7 +98,7 @@ func (cfg GeneratorOptions) methodToReducerActions(name string, m *descriptor.Me
 		methodName + `: null`,
 	}, ",\n  ")
 
-	actionTypes = methodName + `: (req: ` + requestType + `) => void`
+	actionTypes = methodName + `: (req: ` + requestType + `, respFn: ?(resp: ` + responseType + `) => void) => void`
 	return
 }
 
@@ -132,7 +133,6 @@ func (cfg GeneratorOptions) serviceToRPC(s *descriptor.Service, reg *descriptor.
 	initialStates := []string{}
 	actionTypes := []string{}
 	for _, m := range s.Methods {
-		glog.V(1).Infof("Method: %s", spew.Sdump(m))
 		redux, method, reduxTypes := cfg.methodToRedux(*s.Name, m)
 		result = append(result, redux)
 		methods = append(methods, method)

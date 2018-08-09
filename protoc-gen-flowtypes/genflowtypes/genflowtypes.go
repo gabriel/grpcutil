@@ -11,7 +11,6 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/gabriel/grpcutil/protoc-gen-flowtypes/opts"
-	"github.com/golang/glog"
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
 	pbdescriptor "github.com/golang/protobuf/protoc-gen-go/descriptor"
@@ -102,7 +101,7 @@ func (t *objectFlowType) FlowType() string {
 			nullableIndicator = ""
 		}
 		field := fmt.Sprintf("  %s%s: %s%s", f.Name(), optionalIndicator, nullableIndicator, f.FlowType())
-		glog.V(1).Infof("Field: %s", field)
+		// glog.V(1).Infof("Field: %s", field)
 		fields = append(fields, field)
 	}
 	return fmt.Sprintf("{\n%s\n}", strings.Join(fields, ",\n"))
