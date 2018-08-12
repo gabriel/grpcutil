@@ -39,25 +39,28 @@ func (cfg GeneratorOptions) methodToRedux(name string, m *descriptor.Method) (st
 	types := []string{requestType, responseType}
 	prefix := strings.ToUpper(name)
 	actionName := prefix + "_" + strings.ToUpper(strcase.SnakeCase(methodName))
-	s := `export const ` + methodName + ` = (req: ` + requestType + `, respFn: ?(resp: ` + responseType + `) => void) => (dispatch: (action: any) => void) => {
+	s := `export const ` + methodName + ` = (req: ` + requestType + `, respFn: ?(resp: ` + responseType + `) => void, delay: ?number) => (dispatch: (action: any) => void) => {
   dispatch({
     type: '` + actionName + `_REQUEST',
 		payload: req,
   })
-  client().` + methodName + `(req, (err: ?Error, resp: ?` + responseType + `) => {
-    if (err) {
-      dispatch({
-        type: 'ERROR',
-        payload: {error: err, action: '` + actionName + `', req},
-      })
-      return
-    }
-		if (resp && respFn) respFn(resp)
-    dispatch({
-      type: '` + actionName + `_RESPONSE',
-      payload: resp,
-    })
-  })
+	if (!delay) delay = 0
+	setTimeout(() => {
+	  client().` + methodName + `(req, (err: ?Error, resp: ?` + responseType + `) => {
+	    if (err) {
+	      dispatch({
+	        type: 'ERROR',
+	        payload: {error: err, action: '` + actionName + `', req},
+	      })
+	      return
+	    }
+			if (resp && respFn) respFn(resp)
+	    dispatch({
+	      type: '` + actionName + `_RESPONSE',
+	      payload: resp,
+	    })
+	  })
+	}, delay)
 }`
 	return s, methodName, types
 }
