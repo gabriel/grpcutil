@@ -142,7 +142,7 @@ func (cfg GeneratorOptions) methodToCommand(name string, m *descriptor.Method, r
 				if err != nil {
 					return err
 				}
-				s, marshalErr := json.Marshal(resp)
+				s, marshalErr := json.MarshalIndent(resp, "", "  ")
 				if marshalErr != nil {
 					return marshalErr
 				}
