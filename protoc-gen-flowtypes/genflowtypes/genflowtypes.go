@@ -204,7 +204,7 @@ func getFieldOptionsIfAny(field *pbdescriptor.FieldDescriptorProto) opts.Options
 	if field.Options != nil {
 		v, err := proto.GetExtension(field.Options, opts.E_Field)
 		if err != nil {
-			fmt.Fprintln(os.Stderr, fmt.Errorf("issue getting field options: %v", err))
+			// fmt.Fprintln(os.Stderr, fmt.Errorf("issue getting field options: %v", err))
 			return opts.Options{}
 		}
 		if o := v.(*opts.Options); o != nil {
