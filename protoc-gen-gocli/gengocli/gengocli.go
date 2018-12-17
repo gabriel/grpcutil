@@ -17,6 +17,28 @@ func removePackage(s string) string {
 	return sp[len(sp)-1]
 }
 
+// fixAcronyms fixes strings with acronyms:
+// For example,
+//   "id" => "ID"
+//   "Gid" => "GID"
+//   "Pkid" => "PKID"
+//   "GroupId" => "GroupID"
+func fixAcronyms(s string) string {
+	if strings.HasSuffix(s, "Id") {
+		if len(s) <= 4 {
+			return strings.ToUpper(s)
+		}
+		return s[:len(s)-2] + "ID"
+	}
+	if strings.HasSuffix(s, "id") && len(s) <= 4 {
+		return strings.ToUpper(s)
+	}
+	if s == "Url" {
+		return "URL"
+	}
+	return s
+}
+
 // Lowers first uppercase characters (Foo => foo, FOOBar => fooBar)
 func lowerPrefix(s string) (lower string) {
 	for pos, char := range s {
@@ -37,7 +59,7 @@ func lowerPrefix(s string) (lower string) {
 func (cfg GeneratorOptions) fieldToType(pkg string, f *descriptor.Field, reg *descriptor.Registry) (string, string) {
 	name := *f.Name
 	dashName := strcase.KebabCase(name)
-	ucName := strcase2.ToCamel(name)
+	ucName := fixAcronyms(strcase2.ToCamel(name))
 	switch f.GetType() {
 	case pbdescriptor.FieldDescriptorProto_TYPE_DOUBLE:
 		fallthrough
