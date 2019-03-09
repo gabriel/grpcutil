@@ -107,8 +107,15 @@ func (cfg GeneratorOptions) fieldToType(pkg string, f *descriptor.Field, reg *de
 		req := ucName + `: c.Bool("` + dashName + `"),`
 		return flag, req
 	case pbdescriptor.FieldDescriptorProto_TYPE_STRING:
-		flag := `cli.StringFlag{Name: "` + dashName + `"},`
-		req := ucName + `: c.String("` + dashName + `"),`
+		var flag string
+		var req string
+		if f.GetLabel() == pbdescriptor.FieldDescriptorProto_LABEL_REPEATED {
+			flag = `cli.StringSliceFlag{Name: "` + dashName + `"},`
+			req = ucName + `: c.StringSlice("` + dashName + `"),`
+		} else {
+			flag = `cli.StringFlag{Name: "` + dashName + `"},`
+			req = ucName + `: c.String("` + dashName + `"),`
+		}
 		return flag, req
 	case pbdescriptor.FieldDescriptorProto_TYPE_GROUP:
 		return "", ""
