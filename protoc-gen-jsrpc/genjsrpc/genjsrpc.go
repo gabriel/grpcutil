@@ -39,13 +39,13 @@ func (cfg GeneratorOptions) methodToRedux(name string, m *descriptor.Method) (st
 	types := []string{requestType, responseType}
 	prefix := strings.ToUpper(name)
 	actionName := prefix + "_" + strings.ToUpper(strcase.SnakeCase(methodName))
-	s := `export const ` + methodName + ` = (req: ` + requestType + `, respFn: ?(resp: ` + responseType + `) => void, errFn: ?(err: Error) => void) => async (dispatch: (action: any) => void) => {
+	s := `export const ` + methodName + ` = (req: ` + requestType + `, respFn: ?(resp: ` + responseType + `) => void, errFn: ?(err: RPCError) => void) => async (dispatch: (action: any) => void) => {
   dispatch({
     type: '` + actionName + `_REQUEST',
 		payload: req,
 	})
 	let cl = await client()
-  cl.` + methodName + `(req, (err: ?Error, resp: ?` + responseType + `) => {
+  cl.` + methodName + `(req, (err: ?RPCError, resp: ?` + responseType + `) => {
     if (err && !errFn) {
       dispatch({
         type: 'ERROR',
@@ -178,6 +178,15 @@ import {client} from './client'
 import type {{"{"}}
   {{.FlowTypes}}
 {{"}"}} from './types'
+
+export type {{"{"}}
+  {{.FlowTypes}}
+{{"}"}}
+
+export type RPCError = {
+	message: string,
+	details: string,
+}
 
 {{.Redux}}
 `)
