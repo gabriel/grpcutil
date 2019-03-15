@@ -2,6 +2,7 @@ package gengocli
 
 import (
 	"bytes"
+	"sort"
 	"strings"
 	"text/template"
 	"unicode"
@@ -187,7 +188,9 @@ func (cfg GeneratorOptions) methodToCommand(name string, m *descriptor.Method, r
 
 func (cfg GeneratorOptions) serviceToCLI(s *descriptor.Service, reg *descriptor.Registry) (string, error) {
 	commands := []string{}
-	for _, m := range s.Methods {
+	methods := s.Methods
+	sort.Slice(methods, func(i, j int) bool { return *methods[i].Name < *methods[j].Name })
+	for _, m := range methods {
 		cmds, err := cfg.methodToCommand(*s.Name, m, reg)
 		if err != nil {
 			return "", err
