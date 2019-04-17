@@ -53,7 +53,10 @@ func (cfg GeneratorOptions) methodToRedux(name string, m *descriptor.Method) (st
       })
       return
     }
-		if (err && errFn) errFn(err)
+		if (err && errFn) {
+			console.error(err)
+			errFn(err)
+		}
 		if (resp && respFn) respFn(resp)
     dispatch({
       type: '` + actionName + `_RESPONSE',
@@ -184,6 +187,7 @@ export type {{"{"}}
 {{"}"}}
 
 export type RPCError = {
+	code: number,
 	message: string,
 	details: string,
 }

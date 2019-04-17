@@ -21,10 +21,12 @@ func removePackage(s string) string {
 
 // fixAcronyms fixes strings with acronyms:
 // For example,
-//   "id" => "ID"
+//   "Id" => "ID"
 //   "Gid" => "GID"
 //   "Pkid" => "PKID"
 //   "GroupId" => "GroupID"
+//   "Url" => "URL"
+//   "Uri" => "URI"
 func fixAcronyms(s string) string {
 	if strings.HasSuffix(s, "Id") {
 		if len(s) <= 4 {
