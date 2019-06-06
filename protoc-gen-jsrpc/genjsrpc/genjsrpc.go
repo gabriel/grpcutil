@@ -158,6 +158,7 @@ func (cfg GeneratorOptions) serviceToRPC(s *descriptor.Service, reg *descriptor.
 func generateJSRPC(file *descriptor.File, registry *descriptor.Registry, options GeneratorOptions) (string, error) {
 	redux := []string{}
 	flowTypes := []string{}
+	flowTypesMap := map[string]bool{}
 	f, err := registry.LookupFile(file.GetName())
 	if err != nil {
 		return "", err
@@ -168,7 +169,11 @@ func generateJSRPC(file *descriptor.File, registry *descriptor.Registry, options
 			return "", serr
 		}
 		redux = append(redux, s)
+		if _, ok := flowTypesMap[t]; ok {
+			continue
+		}
 		flowTypes = append(flowTypes, t)
+		flowTypesMap[t] = true
 	}
 
 	buf := new(bytes.Buffer)
