@@ -151,7 +151,7 @@ func (cfg GeneratorOptions) serviceToRPC(s *descriptor.Service, reg *descriptor.
 	}
 
 	reducer := cfg.reducers(methods, reducerActions, reducerStates, initialStates, actionTypes)
-
+	types = unique(types)
 	return strings.Join(result, "\n") + "\n\n" + reducer, strings.Join(types, ",\n  "), nil
 }
 
@@ -182,7 +182,6 @@ func generateJSRPC(file *descriptor.File, registry *descriptor.Registry, options
 		redux = append(redux, s)
 		flowTypes = append(flowTypes, t)
 	}
-	flowTypes = unique(flowTypes)
 
 	buf := new(bytes.Buffer)
 	tmpl, err := template.New("").Parse(`// @flow
