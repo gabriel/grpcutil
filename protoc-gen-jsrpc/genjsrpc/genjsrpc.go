@@ -155,10 +155,21 @@ func (cfg GeneratorOptions) serviceToRPC(s *descriptor.Service, reg *descriptor.
 	return strings.Join(result, "\n") + "\n\n" + reducer, strings.Join(types, ",\n  "), nil
 }
 
+func unique(strs []string) []string {
+	keys := make(map[string]bool)
+	list := []string{}
+	for _, entry := range strs {
+		if _, value := keys[entry]; !value {
+			keys[entry] = true
+			list = append(list, entry)
+		}
+	}
+	return list
+}
+
 func generateJSRPC(file *descriptor.File, registry *descriptor.Registry, options GeneratorOptions) (string, error) {
 	redux := []string{}
 	flowTypes := []string{}
-	flowTypesMap := map[string]bool{}
 	f, err := registry.LookupFile(file.GetName())
 	if err != nil {
 		return "", err
@@ -169,12 +180,9 @@ func generateJSRPC(file *descriptor.File, registry *descriptor.Registry, options
 			return "", serr
 		}
 		redux = append(redux, s)
-		if _, ok := flowTypesMap[t]; ok {
-			continue
-		}
 		flowTypes = append(flowTypes, t)
-		flowTypesMap[t] = true
 	}
+	flowTypes = unique(flowTypes)
 
 	buf := new(bytes.Buffer)
 	tmpl, err := template.New("").Parse(`// @flow
