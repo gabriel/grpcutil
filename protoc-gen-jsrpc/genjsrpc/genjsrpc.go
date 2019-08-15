@@ -46,24 +46,28 @@ func (cfg GeneratorOptions) methodToRedux(name string, m *descriptor.Method) (st
 	})
 	let cl = await client()
   cl.` + methodName + `(req, (err: ?RPCError, resp: ?` + responseType + `) => {
-    if (err && !errFn) {
-      dispatch({
-        type: 'ERROR',
-        payload: {error: err, action: '` + actionName + `', req},
-      })
+    if (err) {
+      if (errFn) {
+        console.error(err)
+        errFn(err)
+      } else if (errHandler) {
+        errHandler(err)
+      } else {
+        dispatch({
+          type: 'ERROR',
+          payload: {error: err, action: '` + actionName + `', req},
+        })
+      }
       return
     }
-		if (err && errFn) {
-			console.error(err)
-			errFn(err)
-		}
-		if (resp && respFn) respFn(resp)
-    dispatch({
-      type: '` + actionName + `_RESPONSE',
-      payload: resp,
+    if (resp && respFn) respFn(resp)
+      dispatch({
+        type: '` + actionName + `_RESPONSE',
+        payload: resp,
+      })
     })
-  })
-}`
+  }
+`
 	return s, methodName, types
 }
 
@@ -111,22 +115,36 @@ func (cfg GeneratorOptions) reducers(methods []string, reducerActions []string, 
 	// actions := `export type RPCActions = {
 	// ` + strings.Join(actionTypes, ",\n  ") + "\n}\n\n"
 
-	meth := `export const RPC = {
-  ` + strings.Join(methods, ",\n  ") + "\n}\n\n"
+	meth := `
+export const RPC = {
+  ` + strings.Join(methods, ",\n  ") + "\n}\n"
 
-	state := `export type RPCState = {
-  ` + strings.Join(actionStates, ",\n  ") + "\n}\n\n"
+	state := `
+export type RPCState = {
+  ` + strings.Join(actionStates, ",\n  ") + "\n}\n"
 
-	initial := `const initialState: RPCState = {
-	` + strings.Join(initialStates, ",\n  ") + "\n}\n\n"
+	initial := `
+const initialState: RPCState = {
+  ` + strings.Join(initialStates, ",\n  ") + "\n}\n"
 
-	reducer := `export function reducer(state: RPCState = initialState, action: any) {
+	reducer := `
+export const reducer = (state: RPCState = initialState, action: any) => {
   switch (action.type) {` + strings.Join(reducerActions, "\n    ") + `
-		default:
-			return state
-	}
-}`
-	return meth + state + initial + reducer
+    default:
+      return state
+  }
+}
+`
+
+	errHandler := `
+export type ErrHandler = (err: RPCError) => void
+var errHandler: ?ErrHandler = null
+export const setErrHandler = (eh: ?ErrHandler) => {
+  errHandler = eh
+}
+`
+
+	return meth + state + initial + reducer + errHandler
 }
 
 func (cfg GeneratorOptions) serviceToRPC(s *descriptor.Service, reg *descriptor.Registry) (string, string, error) {
