@@ -49,10 +49,11 @@ func (cfg GeneratorOptions) methodToRedux(name string, m *descriptor.Method) (st
     if (err) {
       if (errFn) {
         console.error(err)
-        errFn(err)
-      } else if (errHandler) {
-        errHandler(err)
-      } else {
+        errFn(err)      
+      } 
+      if (errHandler) {
+        errHandler(err, errFn)
+      } else if (!errFn) {
         dispatch({
           type: 'ERROR',
           payload: {error: err, action: '` + actionName + `', req},
@@ -137,11 +138,12 @@ export const reducer = (state: RPCState = initialState, action: any) => {
 `
 
 	errHandler := `
-export type ErrHandler = (err: RPCError) => void
+export type ErrHandler = (err: RPCError, errFn: ?(err: RPCError) => void) => void
 var errHandler: ?ErrHandler = null
 export const setErrHandler = (eh: ?ErrHandler) => {
   errHandler = eh
 }
+	
 `
 
 	return meth + state + initial + reducer + errHandler
