@@ -36,27 +36,30 @@ func (cfg GeneratorOptions) streamMethodToIPC(name string, m *descriptor.Method)
 	requestType := removePackage(*m.InputType)
 	responseType := removePackage(*m.OutputType)
 	types := []string{requestType, responseType}
-	s := `export const ` + methodName + ` = (req: ` + requestType + `, cb: (err: RPCError, resp: ` + responseType + `, done: boolean) => void) => {
+	s := `export const ` + methodName + ` = (
+  f: (err: RPCError, resp: ` + responseType + `, done: boolean) => void
+): ((req: ` + requestType + `, end: boolean) => void) => {
   const reply = '` + methodName + `-' + replyID()
-  ipcRenderer.on(reply, (event, arg) => {	
+  ipcRenderer.on(reply, (event, arg) => {
     if (!!arg.done || arg.err) {
       ipcRenderer.removeAllListeners(reply)
-    }
-    if (arg.err) {
-      console.error('RPC-stream error (` + methodName + `):', arg.err)
+	}
+	if (arg.err) {
+	  console.error('RPC-stream error (` + methodName + `):', arg.err)
       errHandler(arg.err)
     }
     if (!!arg.done) {
       console.log('RPC-stream (` + methodName + `) done')
     }
-    cb(arg.err, arg.resp, !!arg.done) 
+    f(arg.err, arg.resp, !!arg.done)
   })
   console.log('RPC-stream (` + methodName + `)...')
-  ipcRenderer.send('rpc-stream', {method: '` + methodName + `', args: req, reply: reply})
+  return (req: ` + requestType + `, end: boolean) => {
+    ipcRenderer.send('rpc-stream', {method: '` + methodName + `', args: req, reply: reply, end: end})
+  }
 }
 `
 	return s, methodName, types
-
 }
 
 func (cfg GeneratorOptions) methodToIPC(name string, m *descriptor.Method) (string, string, []string) {
@@ -65,10 +68,13 @@ func (cfg GeneratorOptions) methodToIPC(name string, m *descriptor.Method) (stri
 	responseType := removePackage(*m.OutputType)
 	types := []string{requestType, responseType}
 
-	s := `export const ` + methodName + ` = (req: ` + requestType + `, cb: (err: RPCError, resp: ` + responseType + `) => void) => {
+	s := `export const ` + methodName + ` = (
+  req: ` + requestType + `,
+  cb: (err: RPCError, resp: ` + responseType + `) => void
+) => {
   const reply = '` + methodName + `-' + replyID()
   ipcRenderer.on(reply, (event, arg) => {
-	ipcRenderer.removeAllListeners(reply)
+    ipcRenderer.removeAllListeners(reply)
     if (arg.err) {
       console.error('RPC error (` + methodName + `):', arg.err)
       errHandler(arg.err)
