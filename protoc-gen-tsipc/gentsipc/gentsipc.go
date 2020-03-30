@@ -56,6 +56,9 @@ func (cfg GeneratorOptions) streamMethodToIPC(name string, m *descriptor.Method)
   console.log('RPC-stream (` + methodName + `)...')
   return (req: ` + requestType + `, end: boolean) => {
     ipcRenderer.send('rpc-stream', {method: '` + methodName + `', args: req, reply: reply, end: end})
+    if (end) {
+      ipcRenderer.removeAllListeners(reply)
+    }
   }
 }
 `
