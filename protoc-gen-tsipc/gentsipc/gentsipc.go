@@ -2,6 +2,7 @@ package gentsrpc
 
 import (
 	"bytes"
+	"path/filepath"
 	"strings"
 	"text/template"
 	"unicode"
@@ -134,6 +135,12 @@ func generate(file *descriptor.File, registry *descriptor.Registry, options Gene
 	if err != nil {
 		return "", err
 	}
+
+	name := file.GetName()
+	ext := filepath.Ext(name)
+	base := strings.TrimSuffix(name, ext)
+	typesImport := "./" + file.GoPkg.Name + "." + base
+
 	for _, service := range f.Services {
 		s, t, serr := options.serviceToRPC(service, registry)
 		if serr != nil {
@@ -151,7 +158,7 @@ import {randomBytes} from 'crypto'
 
 import {{"{"}}
   {{.Types}}
-{{"}"}} from './types'
+{{"}"}} from '{{.TypesImport}}'
 
 export interface RPCError {
     code?: number;
@@ -176,9 +183,15 @@ export const setErrHandler = (eh: ErrHandler) => {
 	}
 	err = tmpl.Execute(buf, struct {
 		GeneratorOptions
-		Types string
-		Out   string
-	}{GeneratorOptions: options, Types: strings.Join(types, ", "), Out: strings.Join(out, "\n\n")})
+		Types       string
+		TypesImport string
+		Out         string
+	}{
+		GeneratorOptions: options,
+		Types:            strings.Join(types, ", "),
+		TypesImport:      typesImport,
+		Out:              strings.Join(out, "\n\n"),
+	})
 	if err != nil {
 		return "", err
 	}
