@@ -139,7 +139,7 @@ func generate(file *descriptor.File, registry *descriptor.Registry, options Gene
 	name := file.GetName()
 	ext := filepath.Ext(name)
 	base := strings.TrimSuffix(name, ext)
-	typesImport := "./" + file.GoPkg.Name + "." + base
+	typesImport := "./" + base + ".d"
 
 	for _, service := range f.Services {
 		s, t, serr := options.serviceToRPC(service, registry)
