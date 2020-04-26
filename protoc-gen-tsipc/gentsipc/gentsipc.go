@@ -33,30 +33,32 @@ func lowerPrefix(s string) (lower string) {
 }
 
 func (cfg GeneratorOptions) streamMethodToIPC(name string, m *descriptor.Method) (string, string, []string) {
+	serviceName := m.Service.GetName()
 	methodName := lowerPrefix(*m.Name)
 	requestType := removePackage(*m.InputType)
 	responseType := removePackage(*m.OutputType)
+	fullMethod := serviceName + "." + methodName
 	types := []string{requestType, responseType}
 	s := `export const ` + methodName + ` = (
   f: (err: RPCError, resp: ` + responseType + `, done: boolean) => void
 ): ((req: ` + requestType + `, end: boolean) => void) => {
-  const reply = '` + methodName + `-' + replyID()
+  const reply = '` + fullMethod + `-' + replyID()
   ipcRenderer.on(reply, (event, arg) => {
     if (!!arg.done || arg.err) {
       ipcRenderer.removeAllListeners(reply)
 	}
 	if (arg.err) {
-	  console.error('RPC-stream error (` + methodName + `):', arg.err)
+	  console.error('RPC-stream error (` + fullMethod + `):', arg.err)
       errHandler(arg.err)
     }
     if (!!arg.done) {
-      console.log('RPC-stream (` + methodName + `) done')
+      console.log('RPC-stream (` + fullMethod + `) done')
     }
     f(arg.err, arg.resp, !!arg.done)
   })
-  console.log('RPC-stream (` + methodName + `)...')
+  console.log('RPC-stream (` + fullMethod + `)...')
   return (req: ` + requestType + `, end: boolean) => {
-    ipcRenderer.send('rpc-stream', {method: '` + methodName + `', args: req, reply: reply, end: end})
+    ipcRenderer.send('rpc-stream', {service: '` + serviceName + `', method: '` + methodName + `', args: req, reply: reply, end: end})
     if (end) {
       ipcRenderer.removeAllListeners(reply)
     }
@@ -67,28 +69,30 @@ func (cfg GeneratorOptions) streamMethodToIPC(name string, m *descriptor.Method)
 }
 
 func (cfg GeneratorOptions) methodToIPC(name string, m *descriptor.Method) (string, string, []string) {
+	serviceName := m.Service.GetName()
 	methodName := lowerPrefix(*m.Name)
 	requestType := removePackage(*m.InputType)
 	responseType := removePackage(*m.OutputType)
 	types := []string{requestType, responseType}
+	fullMethod := serviceName + "." + methodName
 
 	s := `export const ` + methodName + ` = (
   req: ` + requestType + `,
   cb: (err: RPCError, resp: ` + responseType + `) => void
 ) => {
-  const reply = '` + methodName + `-' + replyID()
+  const reply = '` + fullMethod + `-' + replyID()
   ipcRenderer.on(reply, (event, arg) => {
     ipcRenderer.removeAllListeners(reply)
     if (arg.err) {
-      console.error('RPC error (` + methodName + `):', arg.err)
+      console.error('RPC error (` + fullMethod + `):', arg.err)
       errHandler(arg.err)
     } else {
-      console.log('RPC (` + methodName + `) done')
+      console.log('RPC (` + fullMethod + `) done')
     }
     cb(arg.err, arg.resp)
   })
-  console.log('RPC (` + methodName + `)...')
-  ipcRenderer.send('rpc', {method: '` + methodName + `', args: req, reply: reply})
+  console.log('RPC (` + fullMethod + `)...')
+  ipcRenderer.send('rpc', {service: '` + serviceName + `', method: '` + methodName + `', args: req, reply: reply})
 }
 `
 	return s, methodName, types
