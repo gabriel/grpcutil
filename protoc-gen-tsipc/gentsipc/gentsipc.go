@@ -34,12 +34,13 @@ func lowerPrefix(s string) (lower string) {
 
 func (cfg GeneratorOptions) streamMethodToIPC(name string, m *descriptor.Method) (string, string, []string) {
 	serviceName := m.Service.GetName()
-	methodName := lowerPrefix(*m.Name)
+	rpcName := lowerPrefix(*m.Name)
+	methodName := *m.Name
 	requestType := removePackage(*m.InputType)
 	responseType := removePackage(*m.OutputType)
 	fullMethod := serviceName + "." + methodName
 	types := []string{requestType, responseType}
-	s := `export const ` + methodName + ` = (
+	s := `export const ` + rpcName + ` = (
   f: (err: RPCError, resp: ` + responseType + `, done: boolean) => void
 ): ((req: ` + requestType + `, end: boolean) => void) => {
   const reply = '` + fullMethod + `-' + replyID()
@@ -70,13 +71,14 @@ func (cfg GeneratorOptions) streamMethodToIPC(name string, m *descriptor.Method)
 
 func (cfg GeneratorOptions) methodToIPC(name string, m *descriptor.Method) (string, string, []string) {
 	serviceName := m.Service.GetName()
-	methodName := lowerPrefix(*m.Name)
+	rpcName := lowerPrefix(*m.Name)
+	methodName := *m.Name
 	requestType := removePackage(*m.InputType)
 	responseType := removePackage(*m.OutputType)
 	types := []string{requestType, responseType}
 	fullMethod := serviceName + "." + methodName
 
-	s := `export const ` + methodName + ` = (
+	s := `export const ` + rpcName + ` = (
   req: ` + requestType + `,
   cb: (err: RPCError, resp: ` + responseType + `) => void
 ) => {
