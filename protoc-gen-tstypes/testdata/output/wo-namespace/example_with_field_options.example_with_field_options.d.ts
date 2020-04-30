@@ -14,19 +14,23 @@ export interface SearchRequest_XyzEntry {
     value?: number;
 }
 
+// SearchRequest is an example type representing a search query.
 export interface SearchRequest {
     query?: string;
-    pageNumber?: number;
-    resultPerPage?: number;
+    page_number?: number;
+    // Number of results per page.
+    result_per_page?: number; // Should never be zero.
     corpus?: SearchRequest_Corpus;
-    sentAt?: google.protobuf.Timestamp;
+    sent_at?: google.protobuf.Timestamp;
     xyz?: { [key: string]: number };
     zytes?: Uint8Array;
+    example_required: number;
 }
 
 export interface SearchResponse {
-    results?: Array<string>;
-    numResults?: number;
-    originalRequest?: SearchRequest;
+    results: Array<string>;
+    num_results: number;
+    original_request: SearchRequest;
+    next_results_uri?: string;
 }
 

@@ -19,9 +19,15 @@ import (
 	"github.com/golang/protobuf/protoc-gen-go/descriptor"
 	plugin "github.com/golang/protobuf/protoc-gen-go/plugin"
 	"github.com/jhump/protoreflect/desc"
+	"github.com/tmc/grpcutil/protoc-gen-tstypes/opts"
+
+	"google.golang.org/genproto/googleapis/api/annotations"
 )
 
 const indent = "    "
+
+type MessageOptionsFunc = func(*desc.MessageDescriptor) MessageOptions
+type FieldOptionsFunc = func(MessageOptions, *desc.FieldDescriptor) FieldOptions
 
 type Parameters struct {
 	AsyncIterators        bool
@@ -33,6 +39,9 @@ type Parameters struct {
 	Verbose               int
 	Int64AsString         bool
 	// TODO: allow template specification?
+
+	MessageOptionsFunc MessageOptionsFunc
+	FieldOptionsFunc   FieldOptionsFunc
 }
 
 type Generator struct {
@@ -47,6 +56,14 @@ type OutputNameContext struct {
 	BaseName   string
 	Descriptor *desc.FileDescriptor
 	Request    *plugin.CodeGeneratorRequest
+}
+
+type MessageOptions struct {
+	DefaultFieldOptions *FieldOptions
+}
+
+type FieldOptions struct {
+	IsRequired bool
 }
 
 func New() *Generator {
@@ -73,6 +90,14 @@ func (g *Generator) W(s string) {
 func (g *Generator) w(s string) {
 	g.Buffer.WriteString(g.indent)
 	g.Buffer.WriteString(s)
+}
+
+func (g *Generator) wcomment(s string) {
+	if s != "" {
+		for _, line := range strings.Split(strings.TrimSuffix(s, "\n"), "\n") {
+			g.W(fmt.Sprintf("//%s", line))
+		}
+	}
 }
 
 var s = &spew.ConfigState{
@@ -169,6 +194,40 @@ func (g *Generator) generateServices(services []*desc.ServiceDescriptor, params 
 	}
 }
 
+func DefaultMessageOptionsFunc(m *desc.MessageDescriptor) MessageOptions {
+	result := MessageOptions{}
+	if o, err := proto.GetExtension(m.AsDescriptorProto().Options, opts.E_FieldDefaults); err == nil {
+		if o, ok := o.(*opts.Options); ok {
+			fieldRequiredDefault := o.GetRequired() || o.GetFieldBehavior() == annotations.FieldBehavior_REQUIRED
+			result.DefaultFieldOptions = &FieldOptions{IsRequired: fieldRequiredDefault}
+		}
+	}
+	return result
+}
+
+func DefaultFieldOptionsFunc(mOpts MessageOptions, f *desc.FieldDescriptor) FieldOptions {
+	required := false
+	if mOpts.DefaultFieldOptions != nil {
+		required = mOpts.DefaultFieldOptions.IsRequired
+	}
+	e, err := proto.GetExtension(f.AsFieldDescriptorProto().Options, opts.E_Field)
+	if err == nil {
+		if e, ok := e.(*opts.Options); ok {
+			required = e.GetRequired()
+		}
+	}
+	if o, err := proto.GetExtension(f.AsFieldDescriptorProto().Options, annotations.E_FieldBehavior); err == nil {
+		if opts, ok := o.([]annotations.FieldBehavior); ok {
+			for _, opt := range opts {
+				if opt == annotations.FieldBehavior_REQUIRED {
+					required = true
+				}
+			}
+		}
+	}
+	return FieldOptions{IsRequired: required}
+}
+
 func (g *Generator) generateMessage(m *desc.MessageDescriptor, params *Parameters) {
 	// TODO: namespace messages?
 	for _, e := range m.GetNestedEnumTypes() {
@@ -178,13 +237,39 @@ func (g *Generator) generateMessage(m *desc.MessageDescriptor, params *Parameter
 		g.generateMessage(m, params)
 	}
 	name := packageQualifiedName(m)
+
+	mOpts := DefaultMessageOptionsFunc(m)
+	if params.MessageOptionsFunc != nil {
+		mOpts = params.MessageOptionsFunc(m)
+	}
+
+	g.wcomment(m.GetSourceInfo().GetLeadingComments())
 	g.W(fmt.Sprintf("export interface %s {", name))
 	for _, f := range m.GetFields() {
 		name := f.GetName()
 		if !params.OriginalNames {
 			name = f.GetJSONName()
 		}
-		g.W(fmt.Sprintf(indent+"%s?: %s;", name, fieldType(f, params)))
+		fOptsFn := DefaultFieldOptionsFunc
+		if params.FieldOptionsFunc != nil {
+			fOptsFn = params.FieldOptionsFunc
+		}
+		fOpts := fOptsFn(mOpts, f)
+		required := fOpts.IsRequired
+
+		suffix := ""
+		if !required {
+			suffix = "?"
+		}
+
+		g.incIndent()
+		g.wcomment(f.GetSourceInfo().GetLeadingComments())
+		g.decIndent()
+		trailingComment := ""
+		if comment := f.GetSourceInfo().GetTrailingComments(); comment != "" {
+			trailingComment = " // " + strings.TrimSpace(comment)
+		}
+		g.W(fmt.Sprintf(indent+"%s%s: %s;%s", name, suffix, fieldType(f, params), trailingComment))
 	}
 	g.W("}\n")
 }

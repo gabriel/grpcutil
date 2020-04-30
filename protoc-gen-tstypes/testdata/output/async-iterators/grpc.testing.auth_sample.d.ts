@@ -2,14 +2,21 @@
 
 declare namespace grpc.testing {
 
+    // Unary request.
     export interface Request {
-        fillUsername?: boolean;
-        fillOauthScope?: boolean;
+        // Whether Response should include username.
+        fill_username?: boolean;
+        // Whether Response should include OAuth scope.
+        fill_oauth_scope?: boolean;
     }
 
+    // Unary response, as configured by the request.
     export interface Response {
+        // The user the request came from, for verifying authentication was
+        // successful.
         username?: string;
-        oauthScope?: string;
+        // OAuth scope.
+        oauth_scope?: string;
     }
 
     export interface TestServiceService {
