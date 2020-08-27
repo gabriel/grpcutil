@@ -34,15 +34,19 @@ func lowerPrefix(s string) (lower string) {
 
 func (cfg GeneratorOptions) streamMethodToIPC(name string, m *descriptor.Method) (string, string, []string) {
 	serviceName := m.Service.GetName()
-	rpcName := lowerPrefix(*m.Name)
 	methodName := *m.Name
+	rpcName := lowerPrefix(methodName)
 	requestType := removePackage(*m.InputType)
 	responseType := removePackage(*m.OutputType)
+	resultType := methodName + `Event`
 	fullMethod := serviceName + "." + methodName
 	types := []string{requestType, responseType}
+
+	res := `export type ` + resultType + ` = {err?: {message: string; name: string; code?: number}, res?: ` + responseType + `, done: boolean}`
+
 	s := `export const ` + rpcName + ` = (
-  f: (err: RPCError, resp: ` + responseType + `, done: boolean) => void
-): ((req: ` + requestType + `, end: boolean) => void) => {
+  f: (res: ` + resultType + `) => void
+): ((req?: ` + requestType + `, end?: boolean) => void) => {
   const reply = '` + fullMethod + `-' + replyID()
   ipcRenderer.on(reply, (event, arg) => {
     if (!!arg.done || arg.err) {
@@ -54,11 +58,16 @@ func (cfg GeneratorOptions) streamMethodToIPC(name string, m *descriptor.Method)
     }
     if (!!arg.done) {
       console.log('RPC-stream (` + fullMethod + `) done')
-    }
-    f(arg.err, arg.resp, !!arg.done)
+	}
+	const res: ` + resultType + ` = {		
+		res: arg.resp,
+		err: arg.err,
+		done: !!arg.done, 
+	}
+	f(res)
   })
   console.log('RPC-stream (` + fullMethod + `)...')
-  return (req: ` + requestType + `, end: boolean) => {
+  return (req?: ` + requestType + `, end?: boolean) => {
     ipcRenderer.send('rpc-stream', {service: '` + serviceName + `', method: '` + methodName + `', args: req, reply: reply, end: end})
     if (end) {
       ipcRenderer.removeAllListeners(reply)
@@ -66,35 +75,35 @@ func (cfg GeneratorOptions) streamMethodToIPC(name string, m *descriptor.Method)
   }
 }
 `
-	return s, methodName, types
+	return strings.Join([]string{res, s}, "\n\n"), methodName, types
 }
 
 func (cfg GeneratorOptions) methodToIPC(name string, m *descriptor.Method) (string, string, []string) {
 	serviceName := m.Service.GetName()
-	rpcName := lowerPrefix(*m.Name)
 	methodName := *m.Name
+	rpcName := lowerPrefix(methodName)
 	requestType := removePackage(*m.InputType)
 	responseType := removePackage(*m.OutputType)
 	types := []string{requestType, responseType}
 	fullMethod := serviceName + "." + methodName
 
-	s := `export const ` + rpcName + ` = (
-  req: ` + requestType + `,
-  cb: (err: RPCError, resp: ` + responseType + `) => void
-) => {
-  const reply = '` + fullMethod + `-' + replyID()
-  ipcRenderer.on(reply, (event, arg) => {
-    ipcRenderer.removeAllListeners(reply)
-    if (arg.err) {
-      console.error('RPC error (` + fullMethod + `):', arg.err)
-      errHandler(arg.err)
-    } else {
-      console.log('RPC (` + fullMethod + `) done')
-    }
-    cb(arg.err, arg.resp)
-  })
-  console.log('RPC (` + fullMethod + `)...')
-  ipcRenderer.send('rpc', {service: '` + serviceName + `', method: '` + methodName + `', args: req, reply: reply})
+	s := `export const ` + rpcName + ` = (req: ` + requestType + `) => {
+	return new Promise<` + responseType + `>((resolve, reject) => {
+		const reply = '` + fullMethod + `-' + replyID()
+		ipcRenderer.on(reply, (event, arg) => {
+			ipcRenderer.removeAllListeners(reply)
+			if (arg.err) {
+				console.error('RPC error (` + fullMethod + `):', arg.err)
+				reject(arg.err)
+				errHandler(arg.err)
+			} else {
+				console.log('RPC (` + fullMethod + `) done')
+			}
+			resolve(arg.resp)
+		})
+		console.log('RPC (` + fullMethod + `)...')
+		ipcRenderer.send('rpc', {service: '` + serviceName + `', method: '` + methodName + `', args: req, reply: reply})
+	})
 }
 `
 	return s, methodName, types
@@ -166,18 +175,12 @@ import {{"{"}}
   {{.Types}}
 {{"}"}} from '{{.TypesImport}}'
 
-export interface RPCError {
-    code?: number;
-    message?: string;
-    details?: string;
-}
-
 const replyID = (): string => {
   return randomBytes(20).toString('hex')
 }
 
-export type ErrHandler = (err: RPCError) => void
-var errHandler: ErrHandler = (err: RPCError) => {}
+export type ErrHandler = (err: {message: string; code: number}) => void
+var errHandler: ErrHandler = (err: {message: string; code: number}) => {}
 export const setErrHandler = (eh: ErrHandler) => {
   errHandler = eh
 }
