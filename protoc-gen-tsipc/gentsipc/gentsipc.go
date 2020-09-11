@@ -57,7 +57,7 @@ func (cfg GeneratorOptions) streamMethodToIPC(name string, m *descriptor.Method)
       errHandler(arg.err)
     }
     if (!!arg.done) {
-      console.log('RPC-stream (` + fullMethod + `) done')
+      console.log('` + fullMethod + `')
 	}
 	const res: ` + resultType + ` = {		
 		res: arg.resp,
@@ -66,7 +66,6 @@ func (cfg GeneratorOptions) streamMethodToIPC(name string, m *descriptor.Method)
 	}
 	f(res)
   })
-  console.log('RPC-stream (` + fullMethod + `)...')
   return (req?: ` + requestType + `, end?: boolean) => {
     ipcRenderer.send('rpc-stream', {service: '` + serviceName + `', method: '` + methodName + `', args: req, reply: reply, end: end})
     if (end) {
@@ -97,11 +96,10 @@ func (cfg GeneratorOptions) methodToIPC(name string, m *descriptor.Method) (stri
 				reject(arg.err)
 				errHandler(arg.err)
 			} else {
-				console.log('RPC (` + fullMethod + `) done')
+				console.log('` + fullMethod + `')
 			}
 			resolve(arg.resp)
 		})
-		console.log('RPC (` + fullMethod + `)...')
 		ipcRenderer.send('rpc', {service: '` + serviceName + `', method: '` + methodName + `', args: req, reply: reply})
 	})
 }
