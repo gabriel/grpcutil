@@ -9,7 +9,7 @@ import (
 	"os"
 	"strings"
 
-	gentsrpc "github.com/gabriel/grpcutil/protoc-gen-tsrpc/gentsrpc"
+	"github.com/gabriel/grpcutil/protoc-gen-tsredux/gentsrpc"
 	"github.com/golang/glog"
 	"github.com/golang/protobuf/proto"
 	plugin "github.com/golang/protobuf/protoc-gen-go/plugin"

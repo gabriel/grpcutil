@@ -37,7 +37,7 @@ func defaultOutputNames(targets []*descriptor.File) []string {
 		name := file.GetName()
 		ext := filepath.Ext(name)
 		base := strings.TrimSuffix(name, ext)
-		result = append(result, fmt.Sprintf("%s.service.ts", base))
+		result = append(result, fmt.Sprintf("%s.ts", base))
 	}
 	return result
 }
@@ -48,7 +48,7 @@ func (g *Generator) Generate(targets []*descriptor.File, opts GeneratorOptions) 
 	outputNames := defaultOutputNames(targets)
 	for i, file := range targets {
 		glog.V(1).Infof("Processing %s", file.GetName())
-		code, err := generate(file, g.reg, opts)
+		code, err := generateRPC(file, g.reg, opts)
 		if err == errNoTargetService {
 			glog.V(1).Infof("%s: %v", file.GetName(), err)
 			continue
