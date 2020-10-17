@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-go install github.com/tmc/grpcutil/protoc-gen-flowtypes
+go install github.com/gabriel/grpcutil/protoc-gen-flowtypes
 
 for t in "$(ls ./is*proto)"; do
   protoc -I . --flowtypes_out=v=4:out "${t}"

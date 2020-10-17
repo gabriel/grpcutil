@@ -19,7 +19,7 @@ import (
 	"github.com/golang/protobuf/protoc-gen-go/descriptor"
 	plugin "github.com/golang/protobuf/protoc-gen-go/plugin"
 	"github.com/jhump/protoreflect/desc"
-	"github.com/tmc/grpcutil/protoc-gen-tstypes/opts"
+	"github.com/gabriel/grpcutil/protoc-gen-tstypes/opts"
 
 	"google.golang.org/genproto/googleapis/api/annotations"
 )
